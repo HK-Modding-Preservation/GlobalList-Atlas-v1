@@ -128,8 +128,16 @@ public static class ArchitectRuntimeBridge
 
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 bool ok = await (Task<bool>)saveFile.Invoke(null, new object[] { url, path });
-                if (ok) result.AssetsDownloaded++;
-                else result.AssetsFailed++;
+                if (ok)
+                {
+                    result.AssetsDownloaded++;
+                }
+                else
+                {
+                    // SaveFile в Architect глотает исключение, причину не узнать — хотя бы сохраняем ссылку
+                    result.AssetsFailed++;
+                    Log.Warn($"[ArchitectBridge] Не удалось скачать ресурс: {url}");
+                }
             }
             catch (Exception e)
             {
@@ -138,6 +146,11 @@ public static class ArchitectRuntimeBridge
             }
         }
     }
+
+    private static bool IsWebUrl(string value) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        (value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+         value.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
 
     private static List<(string Url, string Extension)> FindExternalAssets(string mapFolder)
     {
@@ -154,7 +167,8 @@ public static class ArchitectRuntimeBridge
                 {
                     if (!AssetExtensions.TryGetValue(prop.Name, out var ext)) continue;
                     string url = prop.Value?.Type == JTokenType.String ? prop.Value.ToString() : null;
-                    if (!string.IsNullOrWhiteSpace(url) && !result.ContainsKey(url)) result[url] = ext;
+                    // Не-URL — имя файла из папки Assets самой карты, Architect найдёт его локально
+                    if (IsWebUrl(url) && !result.ContainsKey(url)) result[url] = ext;
                 }
             }
             catch (Exception e)

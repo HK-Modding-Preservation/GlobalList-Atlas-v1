@@ -39,6 +39,9 @@ public static class EventCatalogConfig
 
     public const string TeleportMasterPresetColumn = "J";
 
+    // Сейв (.dat) отдельно от карты в C
+    public const string SaveColumn = "K";
+
     public static readonly Color32 EventColor = new(0x3E, 0x6F, 0xB5, 0xFF); // синий
     public static readonly Color32 PvPColor = new(0xB5, 0x44, 0x4B, 0xFF);   // красный
     public static readonly Color32 UnknownColor = new(0x55, 0x5A, 0x66, 0xFF);

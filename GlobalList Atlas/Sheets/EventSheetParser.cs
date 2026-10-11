@@ -72,6 +72,7 @@ public static class EventSheetParser
 
             var type = EventCatalogConfig.ParseType(Text(EventCatalogConfig.TypeColumn));
             string fileLink = Link(EventCatalogConfig.FileColumn);
+            string saveLink = Link(EventCatalogConfig.SaveColumn);
 
             var presets = new List<MapPresetRef>();
             string tmLink = Link(EventCatalogConfig.TeleportMasterPresetColumn);
@@ -95,6 +96,8 @@ public static class EventSheetParser
                 Description = Text(EventCatalogConfig.DescriptionColumn),
                 DriveUrl = fileLink,
                 SourceFileName = fileLink != null ? Text(EventCatalogConfig.FileColumn) : null,
+                SaveUrl = saveLink,
+                SaveFileName = saveLink != null ? Text(EventCatalogConfig.SaveColumn) : null,
                 PreviewUrl = Link(EventCatalogConfig.PreviewColumn),
                 RulesUrl = Link(EventCatalogConfig.RulesColumn),
                 RequiredPublicMods = LumaflyLinkParser.ExtractRequiredMods(Link(EventCatalogConfig.ModsColumn)),

@@ -31,6 +31,16 @@ public class MapRow
 
     public string SourceFileName;
 
+    // Отдельный сейв к карте (ивенты, колонка K)
+    public string SaveUrl;
+    public string SaveFileName;
+
+    public bool HasSeparateSave => !string.IsNullOrEmpty(SaveUrl) && FileKind != MapFileKind.Save;
+
+    // Старые строки ивентов могли держать .dat прямо в колонке файла
+    public string SaveDownloadUrl => !string.IsNullOrEmpty(SaveUrl) ? SaveUrl
+        : FileKind == MapFileKind.Save ? DriveUrl : null;
+
     public List<GlobalListAtlas.Integrations.MapPresetRef> Presets = new();
 
     public string ServerLevelId;

@@ -48,7 +48,8 @@ public static class SaveInstaller
     {
         var result = new SaveInstallResult();
 
-        if (map == null || string.IsNullOrEmpty(map.DriveUrl))
+        string url = map?.SaveDownloadUrl;
+        if (string.IsNullOrEmpty(url))
         {
             result.ErrorMessage = "У карты нет ссылки на файл сохранения";
             return result;
@@ -57,7 +58,7 @@ public static class SaveInstaller
         byte[] bytes;
         try
         {
-            bytes = await GoogleDriveDownloader.DownloadAsync(map.DriveUrl);
+            bytes = await GoogleDriveDownloader.DownloadAsync(url);
         }
         catch (Exception e)
         {

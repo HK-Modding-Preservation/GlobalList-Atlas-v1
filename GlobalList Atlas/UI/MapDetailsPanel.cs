@@ -539,6 +539,12 @@ public class MapDetailsPanel : MonoBehaviour
         }
         AddSpacer(10);
 
+        if (map.HasSeparateSave)
+        {
+            AddSaveInstallBlock(map);
+            AddSpacer(10);
+        }
+
         if (map.Catalog != MapCatalogKind.ArchitectServer)
         {
             bool hasRequiredMods = map.RequiredPublicMods != null && map.RequiredPublicMods.Count > 0;
@@ -1095,9 +1101,14 @@ public class MapDetailsPanel : MonoBehaviour
             AddModRow(m.Display, m.Folder, m.ModLinksName);
 
         int installed = list.Count(m => PendingModChanges.GetEffectiveState(m.Folder) != ModState.NotInstalled);
-        if (installed == list.Count)
+        // Готов = включён и все зависимости на месте; выключенные и без зависимостей уже подписаны в своих строках
+        bool allReady = list.All(m =>
+            PendingModChanges.GetEffectiveState(m.Folder) == ModState.Enabled &&
+            (string.IsNullOrEmpty(m.ModLinksName) || PublicModInstaller.GetMissingDependencies(m.ModLinksName).Count == 0));
+
+        if (allReady)
             AddText(Localization.Get("mods.all_installed"), 16, TextAnchor.MiddleLeft, GoodGreen, 26);
-        else
+        else if (installed < list.Count)
             AddText(Localization.Get("mods.installed", installed, list.Count), 15, TextAnchor.MiddleLeft, MutedGray, 20);
     }
 
@@ -1808,26 +1819,7 @@ public class MapDetailsPanel : MonoBehaviour
 
     private void AddSaveMapSection(MapRow map)
     {
-        AddBadge(Localization.Get("badge.save"), Localization.Get("badge.save_hint"), PositiveBadgeColor);
-
-        var (saveRow, saveGo, saveButton, saveImage, saveText) = UIFactory.CreateCompactButtonRow(
-            _content, "InstallSaveButton",
-            _saveInstallInProgress ? Localization.Get("save.installing") : Localization.Get("button.install_save"),
-            18, 38f);
-        saveImage.color = PrimaryActionBg;
-        saveText.color = UIFactory.GetReadableTextColor(PrimaryActionBg);
-        saveButton.interactable = !_saveInstallInProgress;
-        _contentGos.Add(saveRow);
-        saveButton.onClick.AddListener(() => OnInstallSaveClicked(map));
-
-        if (SaveInstaller.FindHighestSlot() > SaveInstaller.VanillaSlotCount &&
-            (!SaveInstaller.IsMoreSavesInstalled() ||
-             PublicModInstaller.GetMissingDependencies(SaveInstaller.MoreSavesModName).Count > 0))
-        {
-            AddSpacer(4);
-            AddWrappedText(Localization.Get("save.more_saves_needed"), 15, TxtNoticeYellow);
-            AddRecommendedModButton("InstallMoreSavesButton", SaveInstaller.MoreSavesModName);
-        }
+        AddSaveInstallBlock(map);
 
         if (!RequiredModsChecker.IsModInstalled(TeleportMasterModName) ||
             PublicModInstaller.GetMissingDependencies(TeleportMasterModName).Count > 0)
@@ -1847,6 +1839,33 @@ public class MapDetailsPanel : MonoBehaviour
         }
 
         AddRestartSection();
+    }
+
+    private void AddSaveInstallBlock(MapRow map)
+    {
+        string hint = Localization.Get("badge.save_hint");
+        if (!string.IsNullOrWhiteSpace(map.SaveFileName))
+            hint = $"{map.SaveFileName}, {hint}";
+        AddBadge(Localization.Get("badge.save"), hint, PositiveBadgeColor);
+
+        var (saveRow, saveGo, saveButton, saveImage, saveText) = UIFactory.CreateCompactButtonRow(
+            _content, "InstallSaveButton",
+            _saveInstallInProgress ? Localization.Get("save.installing") : Localization.Get("button.install_save"),
+            18, 38f);
+        saveImage.color = PrimaryActionBg;
+        saveText.color = UIFactory.GetReadableTextColor(PrimaryActionBg);
+        saveButton.interactable = !_saveInstallInProgress;
+        _contentGos.Add(saveRow);
+        saveButton.onClick.AddListener(() => OnInstallSaveClicked(map));
+
+        if (SaveInstaller.FindHighestSlot() > SaveInstaller.VanillaSlotCount &&
+            (!SaveInstaller.IsMoreSavesInstalled() ||
+             PublicModInstaller.GetMissingDependencies(SaveInstaller.MoreSavesModName).Count > 0))
+        {
+            AddSpacer(4);
+            AddWrappedText(Localization.Get("save.more_saves_needed"), 15, TxtNoticeYellow);
+            AddRecommendedModButton("InstallMoreSavesButton", SaveInstaller.MoreSavesModName);
+        }
     }
 
     private void AddRecommendedModButton(string name, string modName)
@@ -1882,7 +1901,8 @@ public class MapDetailsPanel : MonoBehaviour
 
         ShowNotification(Localization.Get("save.installed", result.Slot, result.SavePath), isError: false);
 
-        if (map.Presets != null && map.Presets.Count > 0)
+        // У карты с отдельным сейвом пресеты ставятся вместе с картой
+        if (map.FileKind == MapFileKind.Save && map.Presets != null && map.Presets.Count > 0)
         {
             var presets = await PresetManager.DownloadPresetsAsync(map);
             if (!IsSameMap(_currentMap, map)) return;
